@@ -1,0 +1,18 @@
+{
+  "nome": "Xpressya",
+  "url": "https://xpressya.com",
+  "tagline": "Home wellness, casa inteligente e games saudáveis",
+  "amazon_tag": "",
+  "ga4": "",
+  "disclosure": "A Xpressya participa dos programas de afiliados da Amazon e do Mercado Livre. Ao comprar pelos nossos links você não paga nada a mais e ajuda a manter o conteúdo independente. Recomendamos apenas produtos com garantia no Brasil.",
+  "categorias": {
+    "bemestar": {"nome": "Bem-estar", "desc": "Massagem, recuperação e relaxamento dentro de casa."},
+    "smart": {"nome": "Casa Inteligente", "desc": "Automação acessível que funciona com Alexa e Google."},
+    "seguranca": {"nome": "Segurança Smart", "desc": "Fechaduras digitais, câmeras e tranquilidade."},
+    "ar": {"nome": "Ar & Clima", "desc": "Purificadores, umidificadores e ar que dá para respirar."},
+    "cozinha": {"nome": "Cozinha Saudável", "desc": "Air fryer, forno e utensílios para comer melhor."},
+    "fitness": {"nome": "Fitness em Casa", "desc": "Esteira, bike e mobilidade em poucos metros quadrados."},
+    "sono": {"nome": "Sono", "desc": "Travesseiros, luz e rotina para dormir de verdade."},
+    "games": {"nome": "Games & Bem-estar", "desc": "Jogar sem destruir coluna, olhos e sono — e até treinar jogando."}
+  }
+}

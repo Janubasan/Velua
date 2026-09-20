@@ -1,0 +1,11 @@
+{
+  "name": "xpressya",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Blog estático Xpressya — home wellness, casa inteligente e games saudáveis",
+  "scripts": {
+    "build": "node build.js",
+    "serve": "node build.js && npx -y serve dist -l tcp://0.0.0.0:3000"
+  },
+  "dependencies": { "marked": "^12.0.0" }
+}
