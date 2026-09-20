@@ -1,0 +1,20 @@
+sku,produto,fornecedor,custo_produto,frete_fornecedor,preco_site_pix,preco_ml_premium,gateway_pct,simples_pct,comissao_ml_pct,frete_ml_subs,margem_site,margem_site_pct,margem_ml,margem_ml_pct
+A-01,Massageador pescoco shiatsu,3Cliques,95,22,219,259,0.99,7,17,20,84.5,38.6,79.9,30.8
+A-02,Pistola massagem mini,3Cliques,120,22,279,329,0.99,7,17,20,114.7,41.1,88.0,26.8
+A-03,Difusor aromas,3Cliques,45,18,129,159,0.99,7,17,15,55.7,43.2,42.8,26.9
+A-05,Tapete yoga + faixa,3Cliques,55,20,149,179,0.99,7,17,15,62.1,41.7,46.0,25.7
+A-10,Kit Bem-estar iniciante,3Cliques,140,25,349,399,0.99,7,17,25,156.1,44.7,113.2,28.4
+B-02,Kit Casa Conectada Positivo,Hayamax,230,20,349,399,0.99,7,17,20,71.1,20.4,33.2,8.3
+B-03,Camera Wi-Fi Intelbras,Hayamax,220,20,349,399,0.99,7,17,20,81.1,23.2,43.2,10.8
+B-04,Fechadura FR 201,Hayamax,430,25,749,849,0.99,7,17,30,234.2,31.3,160.2,18.9
+B-05,Fechadura IFR 7001+,Hayamax,640,28,1099,1249,0.99,7,17,30,343.2,31.2,251.2,20.1
+B-06,Air fryer forno 12L,Hayamax,540,40,899,999,0.99,7,14,45,247.2,27.5,164.2,16.4
+B-07,Purificador HEPA,Hayamax,700,40,1199,1349,0.99,7,14,45,363.2,30.3,280.7,20.8
+B-09,Kit Seguranca,Hayamax,950,35,1599,1799,0.99,7,17,40,486.3,30.4,342.2,19.0
+C-01,Poltrona massagem,Gazin,1950,180,3490,3890,0.99,7,17,120,1081.5,31.0,706.4,18.2
+C-02,Esteira com app,Gazin,1500,150,2590,2890,0.99,7,17,120,733.2,28.3,426.4,14.8
+,,,,,,,,,,,,,,
+FORMULAS,,,,,,,,,,,,,,
+margem_site,= preco_site - custo - frete_forn - preco_site*(gateway%+simples%),,,,,,,,,,,,,
+margem_ml,= preco_ml - custo - frete_forn - preco_ml*(comissao%+simples%) - frete_ml_subs,,,,,,,,,,,,,
+regra,B-02 e B-03 so no site/Amazon (margem ML < 15%). Custos fixos mensais ~R$880: break-even ~6 fechaduras/mes,,,,,,,,,,,,,
