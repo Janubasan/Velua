@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+venv/
+ENV/
+.env.local
+*.log
+# Keep sample strategies.jev but ignore runtime generated huge files if needed
+# strategies.jev
+# !strategies.jev.example
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+frontend/.next/
+frontend/out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+.dockerignore
+
+# CCXT cache
+.cache/
+
+# On-chain
+artifacts/
+cache/
+typechain-types/
