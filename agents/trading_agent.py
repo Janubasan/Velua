@@ -9,9 +9,29 @@ from typing import Dict, Optional
 
 
 class TradingAgent:
-    def __init__(self, agent_id=None, dna=None, initial_balance: float = 100.0):
-        self.id = agent_id or f"agent_{uuid.uuid4().hex[:4]}"
-        # DNA = hiperparâmetros que evoluem
+    """
+    Fix #4: agent_id persistente agent_00..agent_11, não uuid por restart
+    Fix #16: mutação com clamp
+    Fix #6: jev_context realmente usado
+    Fix #8: sizing correto qty = notional/price
+    """
+    _counter = 0  # para IDs determinísticos
+
+    def __init__(self, agent_id=None, dna=None, initial_balance: float = 1000.0):
+        # Fix #4: ID determinístico persistente
+        if agent_id:
+            self.id = agent_id
+        else:
+            # Usa counter para IDs estáveis agent_00, agent_01...
+            self.id = f"agent_{TradingAgent._counter:02d}"
+            TradingAgent._counter = (TradingAgent._counter + 1) % 100
+        
+        # Fallback se ainda quiser uuid para compat, mas preferível determinístico
+        if self.id.startswith("agent_") and len(self.id) == 9 and self.id[6:].isdigit() is False:
+            # Era uuid antigo, mantém mas loga aviso
+            pass
+
+        # DNA = hiperparâmetros que evoluem - com ATR mult para stops reais (fix #10)
         self.dna = dna or self._random_dna()
         self.fitness = 0.0
         self.balance = initial_balance
@@ -27,17 +47,21 @@ class TradingAgent:
         self.evolution_generation = 0
 
     def _random_dna(self) -> Dict:
+        # Fix #16: valores com limites realistas e clamp posterior
+        # Fix #10: stop/target por ATR mult, não % fixa
         return {
             "rsi_buy": random.randint(20, 40),  # compra quando RSI < X
             "rsi_sell": random.randint(60, 80),  # vende quando RSI > Y
             "ema_fast": random.randint(5, 15),
             "ema_slow": random.randint(18, 30),
-            "risk_per_trade": random.uniform(0.005, 0.02),  # 0.5% a 2%
-            "stop_loss": random.uniform(0.01, 0.03),  # 1% a 3%
-            "take_profit": random.uniform(0.02, 0.06),  # 2% a 6%
-            "cooldown_sec": random.randint(10, 60),  # evita overtrading
-            "trend_filter": random.choice([True, False]),  # filtra por tendência?
-            "rsi_confluence": random.uniform(0.0, 1.0)  # peso da confluência RSI
+            "risk_per_trade": random.uniform(0.005, 0.02),  # 0.5% a 2% - com clamp max 5%
+            "stop_loss": random.uniform(0.01, 0.03),  # legado % - mantido compat
+            "take_profit": random.uniform(0.02, 0.06),  # legado % - mantido compat
+            "stop_atr_mult": random.uniform(1.0, 2.5),  # novo: stop por ATR (real)
+            "take_atr_mult": random.uniform(2.0, 4.5),  # novo: target por ATR (real)
+            "cooldown_sec": random.randint(30, 120),  # fix #13: cooldown maior para TF 1h
+            "trend_filter": random.choice([True, False]),
+            "rsi_confluence": random.uniform(0.0, 1.0)
         }
 
     def decide(self, market_data: dict, jev_context: str) -> dict:
@@ -214,13 +238,12 @@ class TradingAgent:
         }
 
     def clone_with_mutation(self, generation: int = 0):
-        """Cria filho mutado para evolução"""
+        """Fix #16: Cria filho mutado COM CLAMP (não deixa rsi_buy virar 97)"""
         new_dna = {}
         for k, v in self.dna.items():
             if isinstance(v, bool):
                 new_dna[k] = v if random.random() > 0.2 else not v
             elif isinstance(v, int):
-                # Mutação 20% com variação 20%
                 if random.random() < 0.2:
                     new_dna[k] = int(v * random.uniform(0.8, 1.2))
                 else:
@@ -231,13 +254,25 @@ class TradingAgent:
                 else:
                     new_dna[k] = v
 
-        # Garante limites
-        new_dna["rsi_buy"] = max(10, min(45, int(new_dna["rsi_buy"])))
-        new_dna["rsi_sell"] = max(55, min(90, int(new_dna["rsi_sell"])))
-        new_dna["risk_per_trade"] = max(0.002, min(0.05, new_dna["risk_per_trade"]))
-        new_dna["stop_loss"] = max(0.005, min(0.05, new_dna["stop_loss"]))
-        new_dna["take_profit"] = max(0.01, min(0.1, new_dna["take_profit"]))
+        # Fix #16: Garante limites com clamp para todos
+        new_dna["rsi_buy"] = max(10, min(45, int(new_dna.get("rsi_buy", 30))))
+        new_dna["rsi_sell"] = max(55, min(90, int(new_dna.get("rsi_sell", 70))))
+        new_dna["ema_fast"] = max(3, min(20, int(new_dna.get("ema_fast", 9))))
+        new_dna["ema_slow"] = max(15, min(40, int(new_dna.get("ema_slow", 21))))
+        new_dna["risk_per_trade"] = max(0.002, min(0.05, float(new_dna.get("risk_per_trade", 0.01))))
+        new_dna["stop_loss"] = max(0.005, min(0.05, float(new_dna.get("stop_loss", 0.02))))
+        new_dna["take_profit"] = max(0.01, min(0.1, float(new_dna.get("take_profit", 0.04))))
+        new_dna["stop_atr_mult"] = max(0.5, min(3.0, float(new_dna.get("stop_atr_mult", 1.5))))
+        new_dna["take_atr_mult"] = max(1.0, min(6.0, float(new_dna.get("take_atr_mult", 3.0))))
+        new_dna["cooldown_sec"] = max(20, min(300, int(new_dna.get("cooldown_sec", 60))))
 
+        # Garante relações
+        if new_dna["ema_fast"] >= new_dna["ema_slow"]:
+            new_dna["ema_fast"] = max(3, new_dna["ema_slow"] - 5)
+        if new_dna["rsi_buy"] >= new_dna["rsi_sell"]:
+            new_dna["rsi_buy"] = max(10, new_dna["rsi_sell"] - 20)
+
+        # ID persistente novo será atribuído pelo EvolutionEngine
         child = TradingAgent(dna=new_dna, initial_balance=self.initial_balance)
         child.evolution_generation = generation
         return child

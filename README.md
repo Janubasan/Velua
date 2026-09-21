@@ -1,4 +1,4 @@
-# Velua - Web4 Trading Protocol | Brokerage Level
+# Velua - Web4 Trading Protocol | JEV Real Corrigido
 
 **Protocolo.JEV + Web 4.0 Automation - Sistema evolutivo de verdade, não só bot de trade.**
 
@@ -7,7 +7,60 @@
 
 ![Brokerage Dashboard](https://img.shields.io/badge/Level-Brokerage-00ff88?style=for-the-badge)
 ![Real Market](https://img.shields.io/badge/Market-Binance%20Real-ff9900?style=for-the-badge)
-![On-Chain](https://img.shields.io/badge/Audit-Arbitrum-8b5cf6?style=for-the-badge)
+![JEV Real](https://img.shields.io/badge/JEV_Real-Corrigido_19_falhas-red?style=for-the-badge)
+![Paper Default](https://img.shields.io/badge/Mode-Paper_Safe-green?style=for-the-badge)
+
+> ⚠️ **JEV Real — versão corrigida**: Este repositório foi reescrito para corrigir 19 falhas críticas do original. Veja `CORRECTIONS.md` para detalhes. Modo `paper` por padrão (seguro), `live` exige confirmação explícita.
+
+## 🛠️ JEV Real - 19 Falhas Corrigidas (Resumo)
+
+**Original quebrado vs Corrigido:**
+
+| # | Original | Corrigido |
+|---|----------|-----------|
+| 1 | `random` sem import → NameError | `import random` + lock |
+| 2 | `calculate_rsi()` inexistente | Implementado puro Python em `market.py` |
+| 3 | `df['loss']<0` KeyError | `.get()` + SQLite `pnl_net<0` |
+| 4 | uuid por restart → memória zero | IDs persistentes `agent_00..11` + SQLite |
+| 5 | Fitness random → seleciona sortudos | Backtest com taxa/slippage em `research.py` + walk-forward |
+| 6 | `jev_context` ignorado | Realmente usado para bloquear trades repetidos |
+| 7 | Demo = real (sandbox comentado) | `paper`/`testnet`/`live` separados |
+| 8 | USD vs BTC qty (60.000x erro) | `qty = notional/price` |
+| 9 | $1 rejeitado (mín $5) | Risk gate bloqueia < $5 + explica matemática |
+| 10 | Sem posição, sem SL/TP | `PositionManager` com ATR stop/target |
+| 11 | API aberta `*` sem auth | CORS restrito + Bearer token |
+| 12 | Duplo `/api/start` = 2 loops | `Lock` + `is_running` check |
+| 13 | Loop 5s em TF 15m (180 sinais/candle) | Loop por timeframe (60s-3600s) |
+| 14 | Sem clientOrderId → duplica ordem | ID único + SQLite UNIQUE |
+| 15 | ccxt bloqueante em async → trava loop | `asyncio.to_thread` |
+| 16 | Mutação sem clamp → rsi_buy 97 | Clamp 10-45, 55-90, etc |
+| 17 | `sum(trades)%50` trigger aleatório | Counter `last_evolution_count` |
+| 18 | On-chain "auditável" falso | Opcional, off por padrão, documentado como não-auditável |
+| 19 | $100 1% risco = negativo por taxas | Explicado, paper default, equity >=$1000 recomendado |
+
+**Como rodar corrigido:**
+```bash
+pip install fastapi uvicorn ccxt pandas numpy
+
+# 1. Pesquisa offline (antes de capital)
+python research.py --symbol BTC/USDT --timeframe 1h --candles 6000
+# se <3 folds passarem: não há edge. Pare.
+
+# 2. Paper (default, seguro)
+uvicorn api.main:app --port 8000
+
+# 3. Testnet
+MODE=testnet EXCHANGE_API_KEY=... EXCHANGE_API_SECRET=... API_TOKEN=$(openssl rand -hex 32) uvicorn api.main:app
+
+# 4. Live só após 30+ dias paper
+MODE=live LIVE_CONFIRM=eu-aceito-perder-este-capital API_TOKEN=... EQUITY_USD=1000 uvicorn api.main:app
+```
+
+Veja `CORRECTIONS.md` completo.
+
+---
+
+## 🏗️ Arquitetura Original (mantida compatível) + Corrigida
 
 ---
 
