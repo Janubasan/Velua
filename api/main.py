@@ -105,8 +105,10 @@ security = HTTPBearer(auto_error=False)
 
 def verify_token(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     """Bearer token obrigatório para endpoints de dinheiro em testnet/live"""
-    # Paper mode: token opcional
-    if MODE == "paper":
+    # Paper mode: token opcional - inclui DEMO, paper, paper_simulated
+    # Verifica tanto env MODE quanto state.mode atual
+    current_mode = state.mode.lower() if hasattr(state, 'mode') else MODE.lower()
+    if MODE == "paper" or current_mode in ["paper", "demo", "paper_simulated"]:
         return True
     
     # Testnet/Live: token obrigatório
@@ -288,12 +290,26 @@ def get_status():
 
 @app.post("/api/mode")
 def set_mode(req: ModeRequest):
-    # Apenas paper/demo em sandbox, real exige confirmação
-    if req.mode == "REAL" and MODE != "live":
-        return {"status": "REAL mode requested but backend in paper - use MODE=live + LIVE_CONFIRM", "mode": state.mode, "requested": req.mode}
-    state.mode = req.mode
+    # Normaliza DEMO/REAL para paper/live
+    mode_in = req.mode.upper()
+    if mode_in == "DEMO":
+        state.mode = "paper"
+        state.symbol = req.symbol
+        return {"status": f"Mode set to paper (DEMO)", "mode": state.mode, "symbol": state.symbol}
+    if mode_in == "REAL":
+        if MODE != "live":
+            return {"status": "REAL mode requested but backend in paper - use MODE=live + LIVE_CONFIRM", "mode": state.mode, "requested": req.mode, "note": "Staying in paper for safety"}
+        state.mode = "live"
+        state.symbol = req.symbol
+        return {"status": f"Mode set to live (REAL)", "mode": state.mode, "symbol": state.symbol}
+    
+    # paper/testnet/live diretos
+    if mode_in.lower() in ["paper", "testnet", "live"]:
+        state.mode = mode_in.lower()
+    else:
+        state.mode = req.mode  # fallback
     state.symbol = req.symbol
-    return {"status": f"Mode set to {req.mode}", "mode": state.mode, "symbol": state.symbol}
+    return {"status": f"Mode set to {state.mode}", "mode": state.mode, "symbol": state.symbol}
 
 @app.get("/api/analytics")
 def get_analytics():
@@ -542,8 +558,11 @@ async def start_protocol(background_tasks: BackgroundTasks, _: bool = Depends(ve
                     # Fix #14: clientOrderId único
                     client_order_id = generate_client_order_id(agent.id)
                     
-                    # Em paper mode, apenas simula. Em testnet/live, enviaria ordem real via ccxt em thread
-                    if state.mode == "paper":
+                    # Em paper mode (inclui DEMO), apenas simula. Em testnet/live, enviaria ordem real via ccxt em thread
+                    mode_norm = state.mode.lower()
+                    if mode_norm in ["demo", "paper", "paper_simulated"]:
+                        mode_norm = "paper"
+                    if mode_norm == "paper":
                         # Paper: abre posição local sem ordem exchange
                         pos = state.positions.open_position(
                             agent_id=agent.id,
@@ -574,7 +593,7 @@ async def start_protocol(background_tasks: BackgroundTasks, _: bool = Depends(ve
                         })
                         state.trades_executed += 1
 
-                    elif state.mode in ["testnet", "live"]:
+                    elif mode_norm in ["testnet", "live"]:
                         # Testnet/Live: enviaria ordem real via ccxt em thread com idempotência
                         # Aqui apenas loga como paper para segurança no sandbox
                         # Em produção, descomentar:
@@ -706,8 +725,13 @@ async def execute_trade(req: TradeRequest, _: bool = Depends(verify_token)):
     # clientOrderId
     client_order_id = req.client_order_id or generate_client_order_id(req.agent_id)
 
+    # Normaliza modo: DEMO=paper, paper_simulated=paper, etc
+    mode_normalized = state.mode.lower()
+    if mode_normalized in ["demo", "paper_simulated", "paper"]:
+        mode_normalized = "paper"
+
     # Modos
-    if state.mode == "paper":
+    if mode_normalized == "paper":
         # Paper: não envia ordem real, apenas loga e abre posição local
         pos = state.positions.open_position(
             agent_id=req.agent_id,
@@ -740,7 +764,7 @@ async def execute_trade(req: TradeRequest, _: bool = Depends(verify_token)):
             "mode": "paper"
         }
 
-    elif state.mode == "testnet":
+    elif mode_normalized == "testnet":
         # Testnet: usa sandbox mode corretamente (fix #7)
         try:
             if state.market.exchange:
@@ -766,13 +790,47 @@ async def execute_trade(req: TradeRequest, _: bool = Depends(verify_token)):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Testnet erro: {e}")
 
-    elif state.mode == "live":
+    elif mode_normalized == "live":
         # Live: exige confirmação e envia ordem real
         if LIVE_CONFIRM != "eu-aceito-perder-este-capital":
             raise HTTPException(status_code=403, detail="Live exige LIVE_CONFIRM")
         
         # Aqui enviaria ordem real - bloqueado em sandbox por segurança
         raise HTTPException(status_code=501, detail="Live trading desabilitado em sandbox. Configure em VPS com API_TOKEN e EQUITY_USD>=1000")
+
+    else:
+        # Fallback: trata qualquer modo desconhecido como paper para debug não quebrar
+        pos = state.positions.open_position(
+            agent_id=req.agent_id,
+            symbol=symbol,
+            side=req.side,
+            price=price,
+            qty=qty,
+            atr=market_data.get("atr", price*0.02),
+            client_order_id=client_order_id
+        )
+        state.jev.log_trade({
+            "client_order_id": client_order_id,
+            "agent_id": req.agent_id,
+            "symbol": symbol,
+            "side": req.side,
+            "price": price,
+            "qty": qty,
+            "notional": notional,
+            "lesson": f"Fallback paper trade {req.side} {qty} {symbol} @ {price} (mode {state.mode})",
+            "mode": "paper"
+        })
+        return {
+            "status": "paper_executed_fallback",
+            "client_order_id": client_order_id,
+            "symbol": symbol,
+            "side": req.side,
+            "price": price,
+            "qty": qty,
+            "notional": notional,
+            "mode": "paper",
+            "original_mode": state.mode
+        }
 
 # === WEBSOCKETS (sem auth para leitura, mas com rate limit) ===
 @app.websocket("/ws/agents")
