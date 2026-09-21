@@ -42,3 +42,9 @@ Thumbs.db
 artifacts/
 cache/
 typechain-types/
+
+# JEV Real SQLite
+jev_real.db
+jev_real.db-wal
+jev_real.db-shm
+*.db

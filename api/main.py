@@ -132,14 +132,25 @@ class AppState:
         self.mode = MODE
         self.symbol = SYMBOL
         self.timeframe = TIMEFRAME
-        # Loop baseado em timeframe, não 5s fixo
-        self.loop_interval_sec = {
+        # Loop baseado em timeframe, não 5s fixo (fix #13)
+        # Mas em paper mode, usa intervalo menor para demo (60s) mesmo com TF 1h
+        base_interval = {
             "1m": 60,
             "5m": 300,
             "15m": 900,
             "1h": 3600,
             "4h": 14400
         }.get(TIMEFRAME, 60)
+        # Override via env para demo rápido
+        env_loop = os.getenv("LOOP_INTERVAL_SEC")
+        if env_loop:
+            self.loop_interval_sec = int(env_loop)
+        else:
+            # Paper mode: max 60s para demo não ficar parado 1h
+            if MODE == "paper":
+                self.loop_interval_sec = min(base_interval, 60)
+            else:
+                self.loop_interval_sec = base_interval
 
 state = AppState()
 
