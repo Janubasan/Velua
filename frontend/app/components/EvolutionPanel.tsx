@@ -26,7 +26,7 @@ export function EvolutionPanel() {
   const [isRunning, setIsRunning] = useState(false);
   const [stats, setStats] = useState<any>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/api/backend";
 
   const fetchAgents = async () => {
     try {
@@ -51,11 +51,13 @@ export function EvolutionPanel() {
     fetchAgents();
     fetchStatus();
 
-    // WebSocket para tempo real
+    // WebSocket para tempo real - preview compatível
     let ws: WebSocket | null = null;
     try {
-      const wsUrl = apiUrl.replace("http", "ws");
-      ws = new WebSocket(`${wsUrl}/ws/agents`);
+      const wsUrl = apiUrl.includes("/api/backend")
+        ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/api/backend/ws/agents`
+        : `${apiUrl.replace("http", "ws").replace("https", "wss")}/ws/agents`;
+      ws = new WebSocket(wsUrl);
       ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
         if (msg.type === "agents_update") {

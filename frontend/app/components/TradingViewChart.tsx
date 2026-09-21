@@ -13,7 +13,7 @@ export function TradingViewChart() {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [market, setMarket] = useState<any>(null);
   const [symbol, setSymbol] = useState("BTC/USDT");
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/api/backend";
 
   useEffect(() => {
     const fetchMarket = async () => {
@@ -30,11 +30,13 @@ export function TradingViewChart() {
     fetchMarket();
     const interval = setInterval(fetchMarket, 5000);
 
-    // WebSocket
+    // WebSocket - preview compatível wss://host/api/backend/ws/market
     let ws: WebSocket | null = null;
     try {
-      const wsUrl = apiUrl.replace("http", "ws");
-      ws = new WebSocket(`${wsUrl}/ws/market`);
+      const wsUrl = apiUrl.includes("/api/backend")
+        ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/api/backend/ws/market`
+        : `${apiUrl.replace("http", "ws").replace("https", "wss")}/ws/market`;
+      ws = new WebSocket(wsUrl);
       ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
         if (msg.type === "market_update") {

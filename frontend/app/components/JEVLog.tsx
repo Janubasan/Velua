@@ -16,7 +16,7 @@ interface JEVEntry {
 export function JEVLog() {
   const [logs, setLogs] = useState<JEVEntry[]>([]);
   const [stats, setStats] = useState<any>(null);
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/api/backend";
 
   const fetchLogs = async () => {
     try {
@@ -40,8 +40,10 @@ export function JEVLog() {
 
     let ws: WebSocket | null = null;
     try {
-      const wsUrl = apiUrl.replace("http", "ws");
-      ws = new WebSocket(`${wsUrl}/ws/jev`);
+      const wsUrl = apiUrl.includes("/api/backend")
+        ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/api/backend/ws/jev`
+        : `${apiUrl.replace("http", "ws").replace("https", "wss")}/ws/jev`;
+      ws = new WebSocket(wsUrl);
       ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
         if (msg.type === "jev_update") {

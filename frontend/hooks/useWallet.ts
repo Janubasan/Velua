@@ -107,8 +107,9 @@ export function useBrokerageWallet() {
   const switchToDemo = () => {
     setModeState('DEMO');
     localStorage.setItem('velua_mode', 'DEMO');
-    // Notifica backend
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/mode`, {
+    // Notifica backend - usa /api/backend para preview funcionar
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/api/backend";
+    fetch(`${apiUrl}/api/mode`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: 'DEMO', symbol: 'BTC/USDT' })
@@ -133,7 +134,8 @@ export function useBrokerageWallet() {
       setModeState('REAL');
       localStorage.setItem('velua_mode', 'REAL');
       
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/mode`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/api/backend";
+      await fetch(`${apiUrl}/api/mode`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'REAL', symbol: 'BTC/USDT' })
