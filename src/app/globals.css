@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-ink-950 text-ink-100 antialiased;
+  background-image: theme("backgroundImage.grid");
+  background-size: 48px 48px;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-all duration-150;
+  }
+  .btn-primary {
+    @apply btn bg-gold-500 text-ink-950 hover:bg-gold-400 hover:shadow-glow active:scale-[.98];
+  }
+  .btn-ghost {
+    @apply btn border border-ink-500 text-ink-100 hover:border-gold-500 hover:text-gold-400;
+  }
+  .btn-sm {
+    @apply px-3.5 py-2 text-xs;
+  }
+  .card {
+    @apply rounded-2xl border border-ink-600/80 bg-ink-800/70 p-6 shadow-card backdrop-blur;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-ink-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider;
+  }
+  .badge-gold {
+    @apply badge border-gold-500/40 bg-gold-500/10 text-gold-400;
+  }
+  .badge-green {
+    @apply badge border-neon-500/40 bg-neon-500/10 text-neon-400;
+  }
+  .badge-muted {
+    @apply badge border-ink-500 bg-ink-700/60 text-ink-100/60;
+  }
+  .input {
+    @apply w-full rounded-xl border border-ink-600 bg-ink-900 px-4 py-3 text-sm text-white placeholder-ink-100/40 outline-none transition focus:border-gold-500 focus:ring-1 focus:ring-gold-500/40;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-100/60;
+  }
+  .h-section {
+    @apply text-3xl font-extrabold tracking-tight text-white sm:text-4xl;
+  }
+  .link-gold {
+    @apply text-gold-400 underline decoration-gold-400/30 underline-offset-4 transition hover:decoration-gold-400;
+  }
+}
+
+::selection {
+  @apply bg-gold-500/30 text-white;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-ink-900;
+}
+::-webkit-scrollbar-thumb {
+  @apply rounded-full border-2 border-ink-900 bg-ink-500;
+}
