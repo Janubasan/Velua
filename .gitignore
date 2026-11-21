@@ -1,0 +1,4 @@
+data/store.json
+data/store.json.tmp
+__pycache__/
+*.pyc

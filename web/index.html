@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APEXQUANT-OS V2 — Paper Trading Real</title>
+<style>
+:root{
+  --bg:#070b0e; --surface:#0d1318; --surface2:#131c23; --line:#1e2b36;
+  --text:#eaf2f4; --muted:#93a5b1; --dim:#667982;
+  --accent:#00d18f; --amber:#ffb020; --danger:#ff5470; --blue:#4da3ff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+button{font:inherit;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:active{transform:scale(.98)}
+header{position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line);background:var(--bg)}
+.wrap{max-width:960px;margin:0 auto;padding:0 12px}
+@media(min-width:640px){.wrap{padding:0 20px}}
+.hrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:12px 0}
+.logo{display:flex;align-items:center;gap:8px;min-width:0}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+h1{font-size:18px;font-weight:700;line-height:1;letter-spacing:-.025em;margin:0}
+@media(min-width:640px){h1{font-size:22px}}
+h1 span{color:var(--accent)}
+.sub{font-size:11px;color:var(--muted);margin-top:2px}
+.hstats{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.stat{text-align:right}
+.stat .lbl{font-size:10px;color:var(--muted);letter-spacing:.025em}
+.stat .val{font-weight:700;font-size:18px;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:13px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.on{background:var(--accent);color:#000;border-color:transparent}
+main{padding:16px 0 40px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.card h2{font-size:15px;font-weight:700;margin:0}
+.card h2 .ic{color:var(--accent)}
+.muted{color:var(--muted);font-size:12px}
+.small{font-size:12px}
+.big{font-size:clamp(34px,9vw,56px);font-weight:700;line-height:1;margin-top:8px;overflow-wrap:anywhere}
+.signal{display:inline-block;padding:10px 16px;border-radius:12px;font-weight:700;font-size:16px;margin-top:4px}
+.sig-buy{background:var(--accent);color:#000}
+.sig-sell{background:var(--danger);color:#fff}
+.sig-wait{background:var(--amber);color:#000}
+.chip{border:1px solid var(--line);border-radius:999px;padding:4px 9px;font-size:11px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ind{background:var(--surface2);border-radius:12px;padding:12px;text-align:center}
+.ind .lbl{font-size:11px;color:var(--muted)}
+.ind .val{font-weight:700;font-size:17px;margin-top:2px;overflow-wrap:anywhere}
+.chartbox{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:12px;padding:8px;margin-top:16px}
+canvas{width:100%;height:130px;display:block}
+.chartlbl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:0 4px 4px}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.actions button{font-weight:700;padding:16px 8px;border-radius:12px;font-size:15px;border:1px solid var(--line)}
+.buy{background:var(--accent);color:#000;border-color:transparent}
+.sell{background:var(--danger);color:#fff;border-color:transparent}
+.pos{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px}
+.pos .top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
+.tag{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.tag.buy{background:var(--accent);color:#000}
+.tag.sell{background:var(--danger);color:#fff}
+.posgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px;font-size:12px}
+@media(min-width:640px){.posgrid{grid-template-columns:repeat(4,1fr)}}
+.posgrid .lbl{color:var(--muted)}
+.posgrid b{display:block}
+.closebtn{margin-top:12px;width:100%;background:var(--surface2);border:1px solid var(--line);font-weight:700;padding:10px 16px;border-radius:12px;font-size:13px}
+@media(min-width:640px){.closebtn{width:auto}}
+.bar{height:10px;background:var(--surface2);border-radius:999px;margin-top:6px;overflow:hidden}
+.bar>div{height:100%;border-radius:999px;background:var(--amber)}
+.bar>div.hot{background:var(--danger)}
+.log{font-size:12px;max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.log .e{border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.log .t{color:var(--dim)}
+.log .k-abertura{color:var(--accent)} .log .k-fechamento{color:var(--blue)}
+.log .k-risco{color:var(--danger)} .log .k-backtest{color:var(--amber)}
+.bots{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:12px}
+.bot{display:flex;align-items:center;gap:8px;font-size:13px}
+.bot .d{width:12px;height:12px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.bot .d.off{background:var(--dim)}
+.bot .s{font-size:11px;color:var(--muted)}
+.banner{border:1px solid var(--amber);background:#2a1f08;border-radius:12px;padding:12px;font-size:13px}
+.banner.sim{border-color:var(--blue);background:#0a1a2a}
+footer{font-size:11px;color:var(--muted);line-height:1.6;text-align:center;padding-top:4px}
+.pos{color:var(--accent)} .neg{color:var(--danger)}
+.toast{font-size:13px;color:var(--accent);margin-top:12px}
+.err{font-size:13px;color:var(--danger);margin-top:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap hrow">
+    <div class="logo">
+      <span class="dot" aria-hidden="true"></span>
+      <div>
+        <h1>APEXQUANT-OS <span>V2</span></h1>
+        <div class="sub" id="updated">Conectando…</div>
+      </div>
+    </div>
+    <div class="hstats">
+      <div class="stat"><div class="lbl">SALDO DEMO</div><div class="val mono" id="equity">—</div></div>
+      <div class="stat"><div class="lbl">P&amp;L TOTAL</div><div class="val mono" id="pnl">—</div></div>
+      <button class="btn" id="autoBtn">Auto …</button>
+      <button class="btn primary" id="refreshBtn">↻ Atualizar</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="modeBanner"></div>
+
+  <section class="card">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start">
+      <div style="min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <h2>BTC / USDT</h2>
+          <span class="chip mono">BINANCE · 1h</span>
+          <span class="chip mono" id="modeChip">…</span>
+        </div>
+        <div id="priceBox"><div class="muted" style="margin-top:12px">Conectando…</div></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="muted">SINAL ATUAL</div>
+        <div id="signalBox"><span class="signal sig-wait">AGUARDAR</span></div>
+        <div class="muted" style="margin-top:4px" id="signalWhy">Baseado em EMA200 + RSI</div>
+      </div>
+    </div>
+    <div class="chartbox">
+      <canvas id="chart" width="620" height="130" aria-label="Gráfico de candles BTCUSDT"></canvas>
+      <div class="chartlbl"><span>50 candles · 1h</span><span id="chartSrc">Binance</span></div>
+    </div>
+    <div class="grid3" style="margin-top:12px" id="indBox"></div>
+  </section>
+
+  <section class="grid3" id="symbolsBox"></section>
+
+  <section class="card">
+    <h2><span class="ic">●</span> Ação rápida — DEMO (múltiplas operações)</h2>
+    <p class="muted" style="margin-top:4px">Entry = preço real atual · SL = 1,5× ATR · TP = 3× ATR · R:R 2,0 · Risco US$ 2,50/operação · até <b id="maxPos">3</b> posições simultâneas em BTC, ETH e SOL.</p>
+    <div class="actions">
+      <button class="buy" id="buyBtn">COMPRAR BTC</button>
+      <button class="sell" id="sellBtn">VENDER BTC</button>
+      <button id="closeAllBtn">FECHAR TUDO</button>
+    </div>
+    <div id="orderMsg"></div>
+    <div id="orderPanel"></div>
+  </section>
+
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <h2>Minhas posições DEMO</h2>
+      <span class="chip mono" id="openCount">0 aberta(s)</span>
+    </div>
+    <div id="positionsBox"></div>
+  </section>
+
+  <section class="card">
+    <h2>Risco · 500 USD</h2>
+    <div class="grid3" style="grid-template-columns:repeat(2,1fr);margin-top:12px" id="riskBox"></div>
+    <div style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between" class="muted"><span>Perda diária usada</span><span class="mono" id="riskPct">0%</span></div>
+      <div class="bar"><div id="riskBar" style="width:0%"></div></div>
+      <p class="muted" style="margin-top:8px">Hard −5% = <b style="color:var(--text)">−US$ 25,00</b> · Kill-switch ao atingir o limite diário. Nenhum bot envia ordem real — tudo é paper-trading.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center">
+      <div>
+        <h2>Histórico / Backtest rápido</h2>
+        <p class="muted" style="margin-top:2px">Estratégia EMA + RSI + ATR nos candles reais.</p>
+      </div>
+      <button class="btn primary" id="btBtn">▶ Testar estratégia</button>
+    </div>
+    <div id="btBox"><p class="muted" style="margin-top:12px">Clique em Testar estratégia para rodar o backtest.</p></div>
+    <div id="btHistory"></div>
+  </section>
+
+  <section class="card">
+    <h2>Registro de operações</h2>
+    <div class="log" id="logBox"></div>
+  </section>
+
+  <section class="card">
+    <h2 style="font-size:14px">Meta Muse Bots</h2>
+    <div class="bots" id="botsBox"></div>
+    <p class="muted" style="margin-top:12px;color:var(--dim)">Scanner → Filter → Analyzer → Executor → Risk → Logger. O modo automático abre operações sozinho nos 3 símbolos quando há sinal.</p>
+  </section>
+
+  <footer>DEMO paper-trading — dados reais: Binance + Frankfurter + Stooq. Sem ordens reais. Equity travado em 500 USD.</footer>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = (n, d=2) => n == null || isNaN(n) ? "—" : Number(n).toLocaleString("pt-BR", {minimumFractionDigits:d, maximumFractionDigits:d});
+const usd = n => "US$ " + fmt(n, 2);
+const cls = n => n >= 0 ? "pos" : "neg";
+let state = null, busy = false;
+
+async function api(path, opts={}) {
+  const r = await fetch(path, {headers: {"Content-Type":"application/json"}, ...opts});
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
+  return j;
+}
+
+function render(s) {
+  state = s;
+  const sim = s.mode === "simulacao";
+  $("modeChip").textContent = sim ? "SIMULAÇÃO" : "DADOS REAIS";
+  $("chartSrc").textContent = sim ? "Simulador local" : "Binance";
+  $("modeBanner").innerHTML = sim
+    ? `<div class="banner sim"><b>Modo SIMULAÇÃO:</b> as fontes reais (Binance/Frankfurter/Stooq) não responderam a partir deste ambiente. O motor está rodando com um feed simulado local — <b>nenhum preço aqui é real</b>. Rode <span class="mono">python3 server.py</span> na sua máquina para dados reais.</div>`
+    : `<div class="banner"><b>Dados reais conectados</b> — preços ao vivo da Binance. Paper-trading: nenhuma ordem real é enviada.</div>`;
+
+  $("updated").textContent = "Atualizado agora" + (s.lastAttempt ? " · última tentativa " + s.lastAttempt : "");
+  $("equity").textContent = usd(s.equity);
+  const pnlEl = $("pnl");
+  pnlEl.textContent = (s.realizedPnl + s.unrealizedPnl >= 0 ? "+" : "") + usd(s.realizedPnl + s.unrealizedPnl);
+  pnlEl.className = "val mono " + cls(s.realizedPnl + s.unrealizedPnl);
+
+  const autoBtn = $("autoBtn");
+  autoBtn.textContent = "Auto " + (s.auto ? "ON" : "OFF");
+  autoBtn.className = "btn" + (s.auto ? " on" : "");
+  autoBtn.disabled = s.killed;
+
+  // preço + sinal
+  const ind = s.indicators;
+  if (s.price == null) {
+    $("priceBox").innerHTML = `<div class="muted" style="margin-top:12px">Conectando… sem preço inventado.</div>`;
+  } else {
+    const chg = s.change24h;
+    $("priceBox").innerHTML = `
+      <div class="big mono">US$ ${fmt(s.price)}</div>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:8px;font-size:13px">
+        ${chg != null ? `<span class="${cls(chg)}" style="font-weight:700">${chg>=0?"▲":"▼"} ${fmt(chg)}% 24h</span>` : ""}
+        <span class="muted">· ${sim ? "feed simulado" : "preço real Binance"}</span>
+      </div>`;
+  }
+  const sig = s.signal;
+  $("signalBox").innerHTML = `<span class="signal ${sig==="COMPRAR"?"sig-buy":sig==="VENDER"?"sig-sell":"sig-wait"}">${sig}</span>`;
+  $("signalWhy").textContent = ind
+    ? `Preço ${s.price > ind.ema200 ? "acima" : "abaixo"} da EMA200 · RSI ${fmt(ind.rsi14,1)}`
+    : "Aguardando candles";
+
+  $("indBox").innerHTML = [
+    ["EMA 200", ind ? fmt(ind.ema200) : "—"],
+    ["RSI 14", ind ? fmt(ind.rsi14,1) : "—"],
+    ["ATR 14", ind ? fmt(ind.atr14) : "—"],
+  ].map(([l,v]) => `<div class="ind"><div class="lbl">${l}</div><div class="val mono">${v}</div></div>`).join("");
+
+  // símbolos
+  const symCards = [["BTC / USDT", s.symbols.BTCUSDT?.price, s.symbols.BTCUSDT?.change24h, s.symbols.BTCUSDT?.signal],
+                    ["ETH / USDT", s.symbols.ETHUSDT?.price, s.symbols.ETHUSDT?.change24h, s.symbols.ETHUSDT?.signal],
+                    ["SOL / USDT", s.symbols.SOLUSDT?.price, s.symbols.SOLUSDT?.change24h, s.symbols.SOLUSDT?.signal]];
+  $("symbolsBox").innerHTML = symCards.map(([n,p,c,sig]) => `
+    <div class="card" style="padding:12px;min-width:0">
+      <div class="muted" style="font-weight:700">${n}</div>
+      <div class="mono" style="font-weight:700;font-size:16px;margin-top:4px;overflow-wrap:anywhere">${p!=null?usd(p):"Conectando…"}</div>
+      <div class="muted" style="margin-top:2px">${c!=null?fmt(c)+"% 24h · ":""}${sig||""}</div>
+    </div>`).join("") + `
+    <div class="card" style="padding:12px;min-width:0"><div class="muted" style="font-weight:700">EUR / USD</div><div class="mono" style="font-weight:700;font-size:16px;margin-top:4px">${s.eurusd!=null?fmt(s.eurusd,4):"—"}</div><div class="muted" style="margin-top:2px">Frankfurter</div></div>
+    <div class="card" style="padding:12px;min-width:0"><div class="muted" style="font-weight:700">US100</div><div class="mono" style="font-weight:700;font-size:16px;margin-top:4px">${s.us100!=null?fmt(s.us100):"—"}</div><div class="muted" style="margin-top:2px">Stooq</div></div>
+    <div class="card" style="padding:12px;min-width:0"><div class="muted" style="font-weight:700">Tentativas</div><div class="mono" style="font-weight:700;font-size:16px;margin-top:4px">${s.attempts}</div><div class="muted" style="margin-top:2px">${s.lastAttempt||""}</div></div>`;
+
+  drawChart(s.candles);
+
+  // posições
+  $("maxPos").textContent = s.config.maxPositions;
+  $("openCount").textContent = s.positions.length + " aberta(s)";
+  const canTrade = !!ind && !s.killed;
+  $("buyBtn").disabled = $("sellBtn").disabled = !canTrade || busy;
+  $("closeAllBtn").disabled = s.positions.length === 0 || busy;
+  if (s.positions.length === 0) {
+    $("positionsBox").innerHTML = `<p class="muted" style="margin-top:12px">Sem posição — clique em <b style="color:var(--text)">Comprar</b> ou <b style="color:var(--text)">Vender</b>, ou ligue o <b style="color:var(--text)">Auto</b> para operar nos 3 símbolos.</p>`;
+  } else {
+    $("positionsBox").innerHTML = s.positions.map(p => {
+      const price = s.symbols[p.symbol]?.price ?? p.entry;
+      const dir = p.side === "BUY" ? 1 : -1;
+      const upl = dir * (price - p.entry) * p.size;
+      return `<div class="pos">
+        <div class="top">
+          <span class="tag ${p.side==="BUY"?"buy":"sell"}">${p.side==="BUY"?"LONG · COMPRADO":"SHORT · VENDIDO"} · ${p.symbol.replace("USDT","")}</span>
+          <span class="mono ${cls(upl)}" style="font-weight:700">${upl>=0?"+":""}${usd(upl)}</span>
+        </div>
+        <div class="posgrid">
+          <span><span class="lbl">Entry</span><b class="mono">${usd(p.entry)}</b></span>
+          <span><span class="lbl">Atual</span><b class="mono">${usd(price)}</b></span>
+          <span><span class="lbl">SL / TP</span><b class="mono">${usd(p.sl)} / ${usd(p.tp)}</b></span>
+          <span><span class="lbl">Size</span><b class="mono">${fmt(p.size,5)} ${p.symbol.replace("USDT","")}</b></span>
+        </div>
+        <button class="closebtn" data-close="${p.id}" ${busy?"disabled":""}>Fechar posição</button>
+      </div>`;
+    }).join("") + (s.closedCount ? `<p class="muted" style="margin-top:12px">Realizado: <b class="${cls(s.realizedPnl)}">${s.realizedPnl>=0?"+":""}${usd(s.realizedPnl)}</b> em ${s.closedCount} posição(ões) fechada(s).</p>` : "");
+    document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closePos(b.dataset.close));
+  }
+
+  // risco
+  $("riskBox").innerHTML = [
+    ["Equity", usd(s.equity)],
+    ["Risco por trade", usd(s.config.riskPerTrade) + " · 0,5%"],
+    ["Perda realizada", usd(s.realizedPnl)],
+    ["Limite do dia", "−" + usd(s.config.dailyLossLimit) + " · −2%"],
+  ].map(([l,v]) => `<div class="ind"><div class="lbl">${l}</div><div class="val mono" style="font-size:15px">${v}</div></div>`).join("");
+  $("riskPct").textContent = fmt(s.dailyLossPct,0) + "% do limite";
+  const bar = $("riskBar");
+  bar.style.width = s.dailyLossPct + "%";
+  bar.className = s.dailyLossPct >= 80 ? "hot" : "";
+
+  // log
+  $("logBox").innerHTML = s.log.length
+    ? s.log.map(e => `<div class="e"><span class="t mono">${e.ts.slice(11)}</span> <span class="k-${e.kind}"><b>${e.kind}</b></span> ${e.message}</div>`).join("")
+    : `<p class="muted">Nenhuma operação registrada ainda.</p>`;
+
+  // bots
+  const bots = [
+    ["Scanner", true], ["Filter", !!ind], ["Analyzer", !!ind],
+    ["Executor", s.auto], ["Risk", !s.killed], ["Logger", true],
+  ];
+  $("botsBox").innerHTML = bots.map(([n,ok]) =>
+    `<div class="bot"><span class="d ${ok?"":"off"}"></span><span>${n}</span><span class="s">${ok?"ok":"aguardando"}</span></div>`).join("");
+
+  // backtests
+  if (s.backtests?.length) {
+    $("btHistory").innerHTML = `<div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">` +
+      s.backtests.slice(0,3).map(b => `<div class="e" style="border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><span class="mono muted">${b.createdAt}</span><span>${b.trades} trades · ${fmt(b.winRate,1)}% win · ${usd(b.pnl)}</span></div>`).join("") + `</div>`;
+  }
+}
+
+function drawChart(candles) {
+  const cv = $("chart");
+  const ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  if (!candles || candles.length < 10) {
+    ctx.fillStyle = "#93a5b1"; ctx.font = "13px system-ui"; ctx.textAlign = "center";
+    ctx.fillText("Conectando… gráfico com candles reais", W/2, H/2);
+    return;
+  }
+  const data = candles.slice(-50);
+  let lo = Infinity, hi = -Infinity;
+  data.forEach(c => { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); });
+  const range = (hi - lo) || 1;
+  const bw = W / data.length, body = Math.max(2, bw * 0.62);
+  const y = v => H - 6 - (v - lo) / range * (H - 14);
+  data.forEach((c, i) => {
+    const x = i * bw + bw / 2;
+    ctx.strokeStyle = ctx.fillStyle = c.c >= c.o ? "#00d18f" : "#ff5470";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, y(c.h)); ctx.lineTo(x, y(c.l)); ctx.stroke();
+    const top = y(Math.max(c.o, c.c));
+    ctx.fillRect(x - body/2, top, body, Math.max(1, y(Math.min(c.o, c.c)) - top));
+  });
+  const last = data[data.length-1];
+  ctx.strokeStyle = "#93a5b1"; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(0, y(last.c)); ctx.lineTo(W, y(last.c)); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+async function refresh() {
+  try { render(await api("/api/state")); }
+  catch(e) { $("updated").textContent = "Erro ao conectar: " + e.message; }
+}
+
+async function order(side) {
+  busy = true; $("orderMsg").innerHTML = "";
+  try {
+    const j = await api("/api/order", {method:"POST", body: JSON.stringify({symbol:"BTCUSDT", side})});
+    $("orderMsg").innerHTML = `<div class="toast">Posição ${side==="BUY"?"de compra":"de venda"} criada e salva.</div>`;
+  } catch(e) { $("orderMsg").innerHTML = `<div class="err">${e.message}</div>`; }
+  busy = false; refresh();
+}
+async function closePos(id) {
+  busy = true;
+  try { await api("/api/close", {method:"POST", body: JSON.stringify({id})}); }
+  catch(e) { $("orderMsg").innerHTML = `<div class="err">${e.message}</div>`; }
+  busy = false; refresh();
+}
+
+$("buyBtn").onclick = () => order("BUY");
+$("sellBtn").onclick = () => order("SELL");
+$("closeAllBtn").onclick = async () => { busy = true; await api("/api/close-all", {method:"POST", body:"{}"}); busy = false; refresh(); };
+$("refreshBtn").onclick = refresh;
+$("autoBtn").onclick = async () => { await api("/api/auto", {method:"POST", body: JSON.stringify({on: !(state?.auto)})}); refresh(); };
+$("btBtn").onclick = async () => {
+  $("btBtn").disabled = true; $("btBtn").textContent = "Testando…";
+  try {
+    const j = await api("/api/backtest", {method:"POST", body: JSON.stringify({symbol:"BTCUSDT"})});
+    const b = j.result;
+    $("btBox").innerHTML = `<div class="grid3" style="margin-top:12px">` +
+      [["Trades", b.trades], ["Win Rate", fmt(b.winRate,1)+"%"], ["Profit Factor", fmt(b.profitFactor,2)], ["P&L", (b.pnl>=0?"+":"")+usd(b.pnl)], ["Equity final", usd(b.equityEnd)], ["Candles", b.candles]]
+      .map(([l,v]) => `<div class="ind"><div class="lbl">${l}</div><div class="val mono">${v}</div></div>`).join("") + `</div>`;
+  } catch(e) { $("btBox").innerHTML = `<div class="err">${e.message}</div>`; }
+  $("btBtn").disabled = false; $("btBtn").textContent = "▶ Testar estratégia";
+  refresh();
+};
+
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>
